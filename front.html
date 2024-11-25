@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amigo Secreto</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: url('background.jpg') no-repeat center center fixed;
+            background-size: cover;
+            color: #fff;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 400px;
+            background-color: rgba(255, 255, 255, 0.9); /* Fundo branco com transparência */
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            padding: 20px;
+        }
+
+        h1, h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #3e2723; /* Tom de chocolate escuro */
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #3e2723;
+        }
+
+        input[type="text"], input[type="email"], textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        textarea {
+            resize: none;
+            height: 80px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #6d4c41; /* Tom de chocolate */
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #5d4037; /* Tom de chocolate mais escuro */
+        }
+
+        .alert {
+            color: red;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- Tela de Apresentação -->
+    <div id="welcome-screen">
+        <h1>Bem-vindo ao Amigo Secreto MJB!</h1>
+        <button onclick="showRegistration()">Participar</button>
+    </div>
+
+    <!-- Tela de Inserção de Dados -->
+    <div id="registration-screen" style="display: none;">
+        <h2>Insira seus dados</h2>
+        <label for="name">Nome:</label>
+        <input type="text" id="name" placeholder="Seu nome">
+
+        <label for="description">Sua descrição:</label>
+        <textarea id="description" placeholder="Fale um pouco sobre você"></textarea>
+
+        <label for="requirement">Preferência de Chocolate:</label>
+        <input type="text" id="requirement" placeholder="Exemplo: Chocolate ao leite">
+
+        <label for="email">Email:</label>
+        <input type="email" id="email" placeholder="seuemail@example.com">
+
+        <button onclick="submitRegistration()">Concluir</button>
+    </div>
+
+    <!-- Tela de Validação -->
+    <div id="validation-screen" style="display: none;">
+        <h2>Insira o código de validação enviado no e-mail</h2>
+        <label for="code">Código de Validação:</label>
+        <input type="text" id="code" placeholder="Digite o código">
+
+        <button onclick="validateCode()">Validar</button>
+        <div id="alert" class="alert" style="display: none;"></div>
+    </div>
+
+    <!-- Tela de Confirmação -->
+    <div id="confirmation-screen" style="display: none;">
+        <h2>Cadastro Confirmado!</h2>
+        <p style="color: #3e2723">Parabéns, você está participando do Amigo Secreto.</p>
+    </div>
+</div>
+
+<script>
+    let createdId = null;
+
+    // Função para validar o código
+    function validateCode() {
+        const validationCode = document.getElementById('code').value;
+
+        if (!createdId) {
+            alert('ID não encontrado. Tente criar um registro primeiro.');
+            return;
+        }
+
+        if (!validationCode) {
+            alert('Por favor, insira um código de validação.');
+            return;
+        }
+
+        const data = {
+            friend_id: createdId,
+            code: validationCode,
+        };
+
+        // Enviar o ID e o código de validação para o backend
+        fetch(`http://localhost:8080/friend/validate`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        })
+            .then(response => {
+                if (response.ok) {
+                    document.getElementById('validation-screen').style.display = 'none';
+                    document.getElementById('confirmation-screen').style.display = 'block';
+                } else {
+                    throw new Error('Erro ao validar o código.');
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                const alert = document.getElementById('alert');
+                alert.textContent = 'Falha ao validar o código. Tente novamente.';
+                alert.style.display = 'block';
+            });
+    }
+
+    // Navegação entre telas
+    function showRegistration() {
+        document.getElementById('welcome-screen').style.display = 'none';
+        document.getElementById('registration-screen').style.display = 'block';
+    }
+
+    async function submitRegistration() {
+        const name = document.getElementById('name').value.trim();
+        const email = document.getElementById('email').value.trim();
+        const description = document.getElementById('description').value.trim();
+        const requirement = document.getElementById('requirement').value.trim();
+
+        // Verifica se todos os campos foram preenchidos e se o e-mail é válido
+        if (!name || !email || !description || !requirement) {
+            alert('Por favor, preencha todos os campos.');
+            return;
+        }
+
+        if (!validateEmail(email)) {
+            alert('Por favor, insira um e-mail válido.');
+            return;
+        }
+
+        const data = {
+            name: name,
+            email: email,
+            description: description,
+            requirement: requirement
+        };
+
+        try {
+            const response = await fetch('http://localhost:8080/friend', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+
+            if (!response.ok) {
+                throw new Error('Erro ao enviar os dados. Tente novamente.');
+            }
+
+            const result = await response.json();
+            createdId = result.id;
+            console.log(createdId)
+
+            if (typeof createdId === 'number') {
+                console.log(`ID retornado: ${createdId}`);
+                // Exibir a próxima tela após o envio bem-sucedido
+                document.getElementById('registration-screen').style.display = 'none';
+                document.getElementById('validation-screen').style.display = 'block';
+            } else {
+                throw new Error('Resposta inesperada do servidor.');
+            }
+        } catch (error) {
+            alert(error.message);
+            console.error(error);
+        }
+    }
+
+    // Função simples para validar e-mails
+    function validateEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    }
+</script>
+</body>
+</html>

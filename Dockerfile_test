@@ -1,0 +1,19 @@
+# Usa a imagem base oficial do PostgreSQL
+FROM postgres:15
+
+# Configura variáveis de ambiente padrão (podem ser sobrescritas pelo docker-compose)
+ENV POSTGRES_USER=postgres
+ENV POSTGRES_PASSWORD=password
+ENV POSTGRES_DB=secretfriend
+
+# Copia o script de inicialização SQL para o diretório padrão do PostgreSQL
+COPY init.sql /docker-entrypoint-initdb.d/
+
+# Configura o diretório de trabalho
+WORKDIR /var/lib/postgresql/data
+
+# Exponha a porta do PostgreSQL
+EXPOSE 5432
+
+# Usa o entrypoint padrão do PostgreSQL
+CMD ["postgres"]
