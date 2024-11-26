@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -33,21 +34,20 @@ func main() {
 	// Configurar o roteador Gorilla Mux
 	router := mux.NewRouter()
 
-	// Configurar os handlers
+	// Configurar os handler
 	handler.CreatePingHandlers(router)
 	friendHandlers := handler.NewFriendHandlers(friendService)
 	friendHandlers.CreateFriendHandlers(router)
 
-	// Configurar CORS
 	headersOk := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization"})
 	originsOk := handlers.AllowedOrigins([]string{"*"})
-	methodsOk := handlers.AllowedMethods([]string{"GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"})
+	methodsOk := handlers.AllowedMethods([]string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"})
 
 	// Configurar Negroni como middleware
 	n := negroni.Classic()
 	n.UseHandler(router)
 
-	// Iniciar o servidor com suporte a CORS
+	// Iniciar o servidor
 	err = http.ListenAndServe(":"+cfg.ServerPort, handlers.CORS(originsOk, headersOk, methodsOk)(n))
 	if err != nil {
 		log.Println("error starting server:", err)
@@ -58,8 +58,8 @@ func main() {
 
 func initializeDatabase(host, port, user, password, dbname string) (*sql.DB, error) {
 	// Monta a string de conexão
-	dsn := "postgresql://" + user + ":" + password + "@" + host + ":" + port + "/" + dbname + "?sslmode=disable"
-
+	dsn := "postgresql://" + user + ":" + password + "@" + host + ":" + port + "/" + dbname + "?sslmode=require"
+	fmt.Println(dsn)
 	time.Sleep(5 * time.Second)
 	// Abre a conexão com o banco
 	db, err := sql.Open("pgx", dsn)
